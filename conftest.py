@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from generators.generators import register_new_courier_and_return_login_password, generate_order_payload
+from generators.generators import register_new_courier_and_return_login_password, generate_order_payload, generate_courier_payload
 from methods.courier_methods import CourierMethods
 from methods.order_methods import OrderMethods
 
@@ -29,6 +29,43 @@ def new_courier():
     CourierMethods.delete_courier(courier_id)
 
 @pytest.fixture
+def courier_for_delete():
+    """Предусловие для теста удаления: создаёт курьера, отдаёт данные.
+    Никакого teardown здесь нет — тест сам удалит его.
+    """
+    login_pass = register_new_courier_and_return_login_password()
+    login, password, first_name = login_pass[0], login_pass[1], login_pass[2]
+
+    login_response = CourierMethods.login_courier({
+        'login': login,
+        'password': password
+    })
+    courier_id = login_response.json()['id']
+
+    return {
+        'login': login,
+        'password': password,
+        'firstName': first_name,
+        'id': courier_id
+    }
+
+@pytest.fixture
+def deleted_courier():
+    """Создаёт курьера, отдаёт данные и удаляет после теста —
+    для теста успешного создания курьера.
+    """
+    payload = generate_courier_payload()
+    response = CourierMethods.create_courier(payload)
+
+    yield {'payload': payload, 'response': response}
+
+    login_response = CourierMethods.login_courier({
+        'login': payload['login'],
+        'password': payload['password']
+    })
+    CourierMethods.delete_courier(login_response.json()['id'])
+
+@pytest.fixture
 def created_order():
     '''Создание заказа'''
 
@@ -36,4 +73,4 @@ def created_order():
     response = OrderMethods.create_order(payload)
     track = response.json()['track']
 
-    yield {'track': track, 'payload': payload}
+    return {'track': track, 'payload': payload}

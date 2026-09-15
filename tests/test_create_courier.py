@@ -9,15 +9,13 @@ from methods.courier_methods import CourierMethods
 class TestCreateCourier:
 
     @allure.title('Курьера можно создать')
-    def test_create_courier_success(self):
-        payload = generate_courier_payload()
-        response = CourierMethods.create_courier(payload)
+    def test_create_courier_success(self, deleted_courier):
+        
+        response = deleted_courier['response']
 
         assert response.status_code == 201
         assert response.json() == {'ok': True}
 
-        login_response = CourierMethods.login_courier({'login': payload['login'], 'password': payload['password']})
-        CourierMethods.delete_courier(login_response.json()['id'])
 
     @allure.title('Нельзя создать одинаковых курьеров')
     def test_create_duplicate_courier(self, new_courier):
@@ -47,8 +45,7 @@ class TestCreateCourier:
     def test_create_courier_existing_login(self, new_courier):
         payload = {
             'login': new_courier['login'],
-            'password': generate_random_string(10),
-            'firstName': generate_random_string(10)
+            'password': generate_random_string(10)
         }
 
         response = CourierMethods.create_courier(payload)
